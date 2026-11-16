@@ -13,6 +13,13 @@ ENV/
 downloads/
 config.json
 history.json
+library.db
+*.db
+
+# Build artifacts
+build/
+dist/
+*.spec
 
 # IDEs
 .vscode/

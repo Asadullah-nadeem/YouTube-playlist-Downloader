@@ -45,6 +45,7 @@ class SettingsView(ctk.CTkScrollableFrame):
             text="Browse...",
             width=90,
             height=36,
+            cursor="hand2",
             command=self._browse_download_dir
         ).pack(side="left")
 
@@ -160,6 +161,7 @@ class SettingsView(ctk.CTkScrollableFrame):
             ff_row,
             text="Verify Engine",
             width=110,
+            cursor="hand2",
             command=self._check_ffmpeg_status
         ).pack(side="right")
 
@@ -199,6 +201,7 @@ class SettingsView(ctk.CTkScrollableFrame):
             actions,
             text="Save Settings",
             height=38,
+            cursor="hand2",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=self.save_values
         )
@@ -208,6 +211,7 @@ class SettingsView(ctk.CTkScrollableFrame):
             actions,
             text="Reset to Defaults",
             height=38,
+            cursor="hand2",
             fg_color="gray40",
             hover_color="#C62828",
             command=self.reset_defaults

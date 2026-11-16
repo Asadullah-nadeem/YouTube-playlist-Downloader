@@ -10,14 +10,16 @@ from src.core.playlist import PlaylistManager
 from src.core.platform_detector import PlatformDetector
 from src.ui.components.progress_card import ProgressCard
 from src.ui.components.video_card import VideoPreviewCard
+from src.ui.components.loading_card import LoadingCard
 from src.utils.config import config
 from src.utils.logger import logger
 from src.utils.helpers import is_valid_url, open_file_or_folder, verify_directory_writable
 
 class DownloadView(ctk.CTkScrollableFrame):
     """
-    Primary Downloader View.
-    Clean executive styling, zero emojis, first-time setup prompt, and live batch counters.
+    Main Downloader View.
+    Features instant platform detection, clean replace-on-paste, loading screen overlay,
+    responsive small-screen layout, and zero emojis.
     """
 
     def __init__(self, master, on_navigate_settings=None, **kwargs):
@@ -56,27 +58,43 @@ class DownloadView(ctk.CTkScrollableFrame):
 
         self.url_entry = ctk.CTkEntry(
             input_row,
-            placeholder_text="Paste any video, post, or playlist link here...",
+            placeholder_text="Paste any video, reel, post, or playlist link here...",
             height=38,
             font=ctk.CTkFont(size=13)
         )
-        self.url_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        self.url_entry.pack(side="left", fill="x", expand=True, padx=(0, 6))
         self.url_entry.bind("<KeyRelease>", self._on_url_input_change)
+        self.url_entry.bind("<Control-v>", self._on_keyboard_paste)
+        self.url_entry.bind("<Control-V>", self._on_keyboard_paste)
+
+        self.clear_btn = ctk.CTkButton(
+            input_row,
+            text="Clear",
+            width=60,
+            height=38,
+            cursor="hand2",
+            fg_color="gray40",
+            hover_color="gray50",
+            command=self._clear_url
+        )
+        self.clear_btn.pack(side="left", padx=(0, 6))
 
         self.paste_btn = ctk.CTkButton(
             input_row,
             text="Paste",
-            width=80,
+            width=75,
             height=38,
+            cursor="hand2",
             command=self._paste_clipboard
         )
-        self.paste_btn.pack(side="left", padx=(0, 8))
+        self.paste_btn.pack(side="left", padx=(0, 6))
 
         self.analyze_btn = ctk.CTkButton(
             input_row,
             text="Analyze",
-            width=90,
+            width=85,
             height=38,
+            cursor="hand2",
             fg_color="#00695C",
             hover_color="#004D40",
             command=self._start_analyze
@@ -96,11 +114,15 @@ class DownloadView(ctk.CTkScrollableFrame):
         )
         self.platform_badge.pack(side="left")
 
-        # 2. Preview Card
+        # 2. Loading State Card (Shown while analyzing)
+        self.loading_card = LoadingCard(self)
+        # Hidden by default
+
+        # 3. Preview Card
         self.preview_card = VideoPreviewCard(self)
         self.preview_card.pack(fill="x", padx=10, pady=6)
 
-        # 3. Format & Quality Options
+        # 4. Format & Quality Options
         self.options_frame = ctk.CTkFrame(self, corner_radius=10)
         self.options_frame.pack(fill="x", padx=10, pady=8)
 
@@ -110,7 +132,6 @@ class DownloadView(ctk.CTkScrollableFrame):
             font=ctk.CTkFont(size=13, weight="bold")
         ).pack(anchor="w", padx=15, pady=(12, 6))
 
-        # Media Type Selection (Video vs Audio)
         type_row = ctk.CTkFrame(self.options_frame, fg_color="transparent")
         type_row.pack(fill="x", padx=15, pady=4)
 
@@ -131,31 +152,28 @@ class DownloadView(ctk.CTkScrollableFrame):
         self.video_options_frame = ctk.CTkFrame(self.controls_container, fg_color="transparent")
         self.video_options_frame.pack(fill="x")
 
-        # Resolution dropdown
         res_col = ctk.CTkFrame(self.video_options_frame, fg_color="transparent")
-        res_col.pack(side="left", padx=(0, 20))
-        ctk.CTkLabel(res_col, text="Resolution Target:").pack(anchor="w")
+        res_col.pack(side="left", padx=(0, 16))
+        ctk.CTkLabel(res_col, text="Resolution:").pack(anchor="w")
         self.res_combo = ctk.CTkComboBox(
             res_col,
             values=["Best Available (Max Quality)", "2160p (4K)", "1440p (2K)", "1080p (Full HD)", "720p (HD)", "480p", "360p"],
-            width=210
+            width=200
         )
         self.res_combo.set("1080p (Full HD)")
         self.res_combo.pack(anchor="w")
 
-        # Video format container dropdown
         fmt_col = ctk.CTkFrame(self.video_options_frame, fg_color="transparent")
-        fmt_col.pack(side="left", padx=(0, 20))
+        fmt_col.pack(side="left", padx=(0, 16))
         ctk.CTkLabel(fmt_col, text="Container:").pack(anchor="w")
         self.vfmt_combo = ctk.CTkComboBox(
             fmt_col,
             values=["mp4", "mkv", "webm"],
-            width=100
+            width=95
         )
         self.vfmt_combo.set("mp4")
         self.vfmt_combo.pack(anchor="w")
 
-        # Subtitles checkbox and language
         sub_col = ctk.CTkFrame(self.video_options_frame, fg_color="transparent")
         sub_col.pack(side="left")
         self.embed_sub_var = ctk.BooleanVar(value=False)
@@ -180,7 +198,7 @@ class DownloadView(ctk.CTkScrollableFrame):
         self.audio_options_frame = ctk.CTkFrame(self.controls_container, fg_color="transparent")
 
         afmt_col = ctk.CTkFrame(self.audio_options_frame, fg_color="transparent")
-        afmt_col.pack(side="left", padx=(0, 20))
+        afmt_col.pack(side="left", padx=(0, 16))
         ctk.CTkLabel(afmt_col, text="Audio Format:").pack(anchor="w")
         self.afmt_combo = ctk.CTkComboBox(
             afmt_col,
@@ -201,7 +219,7 @@ class DownloadView(ctk.CTkScrollableFrame):
         self.abtr_combo.set("320k (Maximum Quality)")
         self.abtr_combo.pack(anchor="w")
 
-        # Extra Checkboxes Row
+        # Extra Options Row
         extras_row = ctk.CTkFrame(self.options_frame, fg_color="transparent")
         extras_row.pack(fill="x", padx=15, pady=(0, 12))
 
@@ -210,9 +228,9 @@ class DownloadView(ctk.CTkScrollableFrame):
             extras_row,
             text="Embed Thumbnail & Metadata Tags",
             variable=self.embed_thumb_var
-        ).pack(side="left", padx=(0, 20))
+        ).pack(side="left", padx=(0, 16))
 
-        ctk.CTkLabel(extras_row, text="Connections (Threads):").pack(side="left", padx=(10, 6))
+        ctk.CTkLabel(extras_row, text="Connections (Threads):").pack(side="left", padx=(6, 4))
         self.threads_combo = ctk.CTkComboBox(
             extras_row,
             values=["4 (Standard)", "8 (High Speed)", "16 (Turbo)"],
@@ -221,7 +239,7 @@ class DownloadView(ctk.CTkScrollableFrame):
         self.threads_combo.set("8 (High Speed)")
         self.threads_combo.pack(side="left")
 
-        # 4. Action Buttons Row
+        # 5. Action Buttons Row (Clickable feedback with cursor hand2)
         actions_row = ctk.CTkFrame(self, fg_color="transparent")
         actions_row.pack(fill="x", padx=10, pady=8)
 
@@ -229,37 +247,40 @@ class DownloadView(ctk.CTkScrollableFrame):
             actions_row,
             text="Start Download",
             height=40,
+            cursor="hand2",
             font=ctk.CTkFont(size=14, weight="bold"),
             command=self._start_download
         )
-        self.download_btn.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.download_btn.pack(side="left", fill="x", expand=True, padx=(0, 8))
 
         self.stop_btn = ctk.CTkButton(
             actions_row,
             text="Cancel",
             height=40,
             width=90,
+            cursor="hand2",
             fg_color="#C62828",
             hover_color="#B71C1C",
             state="disabled",
             command=self._stop_download
         )
-        self.stop_btn.pack(side="left", padx=(0, 10))
+        self.stop_btn.pack(side="left", padx=(0, 8))
 
         self.folder_btn = ctk.CTkButton(
             actions_row,
             text="Open Folder",
             height=40,
             width=110,
+            cursor="hand2",
             command=self._open_downloads_folder
         )
         self.folder_btn.pack(side="left")
 
-        # 5. Dual Progress Card (Batch Tracker + File HUD)
+        # 6. Progress Card
         self.progress_card = ProgressCard(self)
         self.progress_card.pack(fill="x", padx=10, pady=6)
 
-        # 6. Live Log Area
+        # 7. Live Activity Log Area
         self.log_frame = ctk.CTkFrame(self, corner_radius=10)
         self.log_frame.pack(fill="both", expand=True, padx=10, pady=(8, 12))
 
@@ -277,6 +298,7 @@ class DownloadView(ctk.CTkScrollableFrame):
             text="Clear Log",
             width=70,
             height=24,
+            cursor="hand2",
             font=ctk.CTkFont(size=11),
             command=self._clear_log
         ).pack(side="right")
@@ -322,6 +344,7 @@ class DownloadView(ctk.CTkScrollableFrame):
             text="Configure in Settings",
             height=28,
             width=160,
+            cursor="hand2",
             command=self._go_to_settings
         ).pack(side="left", padx=(0, 8))
 
@@ -330,6 +353,7 @@ class DownloadView(ctk.CTkScrollableFrame):
             text="Confirm Default Path",
             height=28,
             width=150,
+            cursor="hand2",
             fg_color="gray40",
             hover_color="gray50",
             command=self._dismiss_setup_banner
@@ -342,6 +366,39 @@ class DownloadView(ctk.CTkScrollableFrame):
     def _dismiss_setup_banner(self):
         config.set("first_run_completed", True)
         self.setup_banner.pack_forget()
+
+    def _clear_url(self):
+        self.url_entry.delete(0, tk.END)
+        self.platform_badge.configure(
+            text="Platform Auto-Detect: Ready for 25+ platforms (YouTube, Instagram, TikTok, Facebook, Twitter, Reddit...)",
+            text_color="gray",
+            fg_color="transparent"
+        )
+        self.detected_platform = None
+        self.preview_card.reset()
+
+    def _on_keyboard_paste(self, event=None):
+        try:
+            txt = self.clipboard_get()
+            if txt:
+                self.url_entry.delete(0, tk.END)
+                self.url_entry.insert(0, txt.strip())
+                self._on_url_input_change()
+                self._start_analyze()
+                return "break"
+        except Exception:
+            pass
+
+    def _paste_clipboard(self):
+        try:
+            clipboard_text = self.clipboard_get()
+            if clipboard_text:
+                self.url_entry.delete(0, tk.END)
+                self.url_entry.insert(0, clipboard_text.strip())
+                self._on_url_input_change()
+                self._start_analyze()
+        except Exception:
+            pass
 
     def _on_url_input_change(self, event=None):
         url = self.url_entry.get().strip()
@@ -380,17 +437,6 @@ class DownloadView(ctk.CTkScrollableFrame):
                 corner_radius=6
             )
 
-    def _paste_clipboard(self):
-        try:
-            clipboard_text = self.clipboard_get()
-            if clipboard_text:
-                self.url_entry.delete(0, tk.END)
-                self.url_entry.insert(0, clipboard_text.strip())
-                self._on_url_input_change()
-                self._start_analyze()
-        except Exception:
-            pass
-
     def _on_type_changed(self, value):
         if value == "Video":
             self.audio_options_frame.pack_forget()
@@ -412,7 +458,12 @@ class DownloadView(ctk.CTkScrollableFrame):
             return
 
         self._on_url_input_change()
-        self.analyze_btn.configure(state="disabled", text="Analyzing...")
+        self.analyze_btn.configure(state="disabled", text="Loading...")
+
+        # Show Loading Screen
+        self.preview_card.pack_forget()
+        self.loading_card.pack(fill="x", padx=10, pady=6, after=self.url_frame)
+        self.loading_card.start("Analyzing media from source... Please wait")
 
         def run_analysis():
             info = PlaylistManager.get_playlist_info(url)
@@ -421,6 +472,11 @@ class DownloadView(ctk.CTkScrollableFrame):
         threading.Thread(target=run_analysis, daemon=True).start()
 
     def _apply_analysis_result(self, info: Optional[Dict[str, Any]], url: str):
+        # Stop and hide loading screen
+        self.loading_card.stop()
+        self.loading_card.pack_forget()
+        self.preview_card.pack(fill="x", padx=10, pady=6, after=self.url_frame)
+
         self.analyze_btn.configure(state="normal", text="Analyze")
         if not info:
             logger.error("Could not fetch media information.")
@@ -454,7 +510,6 @@ class DownloadView(ctk.CTkScrollableFrame):
             logger.warning("Invalid URL entered.")
             return
 
-        # Path check
         out_folder = config.get("download_dir", os.path.abspath("downloads"))
         ok, err = verify_directory_writable(out_folder)
         if not ok:
@@ -464,12 +519,8 @@ class DownloadView(ctk.CTkScrollableFrame):
 
         media_type = "video" if self.type_segmented.get() == "Video" else "audio"
 
-        # Resolution string
         res_raw = self.res_combo.get().split()[0].lower()
-        if "best" in res_raw:
-            resolution = "best"
-        else:
-            resolution = res_raw
+        resolution = "best" if "best" in res_raw else res_raw
 
         video_format = self.vfmt_combo.get()
         audio_format = self.afmt_combo.get().split()[0].lower()
@@ -514,7 +565,6 @@ class DownloadView(ctk.CTkScrollableFrame):
     def _on_progress(self, data: Dict[str, Any]):
         status = data.get("status")
 
-        # Update batch counter if playlist
         pl_index = data.get("playlist_index", 0)
         pl_total = data.get("playlist_total", 0)
         if pl_total > 0:
@@ -552,7 +602,6 @@ class DownloadView(ctk.CTkScrollableFrame):
     def _on_log_message(self, message: str, level: str):
         try:
             self.log_textbox.insert(tk.END, message + "\n")
-            # Limit log textbox lines to 300 to minimize memory consumption
             lines = int(self.log_textbox.index('end-1c').split('.')[0])
             if lines > 300:
                 self.log_textbox.delete("1.0", "50.0")

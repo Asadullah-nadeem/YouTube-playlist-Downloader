@@ -20,7 +20,7 @@ class ModernApp(ctk.CTk):
         # Window Configuration
         self.title("Media Studio Pro - Universal Downloader & Converter")
         self.geometry("1120x780")
-        self.minsize(940, 660)
+        self.minsize(860, 600)
 
         # Apply user theme
         saved_theme = config.get("theme", "dark")
@@ -61,7 +61,7 @@ class ModernApp(ctk.CTk):
         )
         sub_lbl.pack(anchor="w")
 
-        # Navigation Buttons (Clean Text, No Emojis)
+        # Navigation Buttons (Clean Text, No Emojis, Responsive Hover)
         self.nav_buttons = {}
 
         nav_items = [
@@ -80,6 +80,7 @@ class ModernApp(ctk.CTk):
                 text=label,
                 height=38,
                 corner_radius=6,
+                cursor="hand2",
                 font=ctk.CTkFont(size=13, weight="bold"),
                 anchor="w",
                 fg_color="transparent",

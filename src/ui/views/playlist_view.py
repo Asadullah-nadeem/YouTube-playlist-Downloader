@@ -7,6 +7,7 @@ from typing import List, Dict, Any, Optional
 from src.core.downloader import downloader
 from src.core.playlist import PlaylistManager
 from src.ui.components.progress_card import ProgressCard
+from src.ui.components.loading_card import LoadingCard
 from src.utils.config import config
 from src.utils.logger import logger
 from src.utils.helpers import is_valid_url, open_file_or_folder, verify_directory_writable
@@ -14,7 +15,7 @@ from src.utils.helpers import is_valid_url, open_file_or_folder, verify_director
 class PlaylistView(ctk.CTkFrame):
     """
     Playlist Inspector & Selective Downloader.
-    Features live batch counters, item ranges, selection toolbar, zero emojis.
+    Features live batch counters, item ranges, loading screen, zero emojis, cursor feedback.
     """
 
     def __init__(self, master, **kwargs):
@@ -47,29 +48,46 @@ class PlaylistView(ctk.CTkFrame):
             height=38,
             font=ctk.CTkFont(size=13)
         )
-        self.url_entry.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        self.url_entry.pack(side="left", fill="x", expand=True, padx=(0, 6))
+
+        self.clear_btn = ctk.CTkButton(
+            row,
+            text="Clear",
+            width=60,
+            height=38,
+            cursor="hand2",
+            fg_color="gray40",
+            hover_color="gray50",
+            command=self._clear_url
+        )
+        self.clear_btn.pack(side="left", padx=(0, 6))
 
         self.paste_btn = ctk.CTkButton(
             row,
             text="Paste",
-            width=80,
+            width=75,
             height=38,
+            cursor="hand2",
             command=self._paste_clipboard
         )
-        self.paste_btn.pack(side="left", padx=(0, 8))
+        self.paste_btn.pack(side="left", padx=(0, 6))
 
         self.fetch_btn = ctk.CTkButton(
             row,
             text="Load Playlist",
             width=110,
             height=38,
+            cursor="hand2",
             fg_color="#00695C",
             hover_color="#004D40",
             command=self._start_fetch
         )
         self.fetch_btn.pack(side="left")
 
-        # 2. Playlist Header Info Banner
+        # 2. Loading State Card (Shown while fetching playlist)
+        self.loading_card = LoadingCard(self)
+
+        # 3. Playlist Header Info Banner
         self.header_card = ctk.CTkFrame(self, corner_radius=10)
         self.header_card.pack(fill="x", padx=10, pady=6)
 
@@ -90,7 +108,7 @@ class PlaylistView(ctk.CTkFrame):
         )
         self.meta_label.pack(anchor="w", padx=15, pady=(0, 8))
 
-        # 3. Selection & Filter Toolbar
+        # 4. Selection & Filter Toolbar
         self.toolbar_card = ctk.CTkFrame(self, corner_radius=10)
         self.toolbar_card.pack(fill="x", padx=10, pady=6)
 
@@ -102,6 +120,7 @@ class PlaylistView(ctk.CTkFrame):
             text="Select All",
             width=85,
             height=28,
+            cursor="hand2",
             command=self._select_all
         ).pack(side="left", padx=(0, 6))
 
@@ -110,6 +129,7 @@ class PlaylistView(ctk.CTkFrame):
             text="Deselect All",
             width=95,
             height=28,
+            cursor="hand2",
             command=self._deselect_all
         ).pack(side="left", padx=(0, 6))
 
@@ -118,6 +138,7 @@ class PlaylistView(ctk.CTkFrame):
             text="Invert",
             width=70,
             height=28,
+            cursor="hand2",
             command=self._invert_selection
         ).pack(side="left", padx=(0, 15))
 
@@ -130,10 +151,11 @@ class PlaylistView(ctk.CTkFrame):
             text="Apply Range",
             width=90,
             height=28,
+            cursor="hand2",
             command=self._apply_range
         ).pack(side="left")
 
-        # 4. Scrollable Video Checklist
+        # 5. Scrollable Video Checklist
         self.list_container = ctk.CTkScrollableFrame(self, height=200, corner_radius=10)
         self.list_container.pack(fill="both", expand=True, padx=10, pady=6)
 
@@ -144,7 +166,7 @@ class PlaylistView(ctk.CTkFrame):
         )
         self.empty_label.pack(pady=40)
 
-        # 5. Format & Download Bar
+        # 6. Format & Download Bar
         bottom_card = ctk.CTkFrame(self, corner_radius=10)
         bottom_card.pack(fill="x", padx=10, pady=(6, 10))
 
@@ -187,6 +209,7 @@ class PlaylistView(ctk.CTkFrame):
             btn_row,
             text="Download Selected Items",
             height=38,
+            cursor="hand2",
             font=ctk.CTkFont(size=13, weight="bold"),
             command=self._start_download_selected
         )
@@ -197,6 +220,7 @@ class PlaylistView(ctk.CTkFrame):
             text="Cancel",
             height=38,
             width=90,
+            cursor="hand2",
             fg_color="#C62828",
             hover_color="#B71C1C",
             state="disabled",
@@ -209,6 +233,7 @@ class PlaylistView(ctk.CTkFrame):
             text="Open Folder",
             height=38,
             width=110,
+            cursor="hand2",
             command=self._open_folder
         )
         self.folder_btn.pack(side="left")
@@ -216,6 +241,9 @@ class PlaylistView(ctk.CTkFrame):
         # Dual Progress Card
         self.progress_card = ProgressCard(self)
         self.progress_card.pack(fill="x", padx=10, pady=(0, 10))
+
+    def _clear_url(self):
+        self.url_entry.delete(0, tk.END)
 
     def _paste_clipboard(self):
         try:
@@ -247,6 +275,10 @@ class PlaylistView(ctk.CTkFrame):
 
         self.fetch_btn.configure(state="disabled", text="Loading...")
 
+        # Show Loading Screen
+        self.loading_card.pack(fill="x", padx=10, pady=6, after=self.header_card)
+        self.loading_card.start("Extracting playlist entries and metadata... Please wait")
+
         def worker():
             info = PlaylistManager.get_playlist_info(url)
             self.after(0, lambda: self._render_playlist(info))
@@ -254,6 +286,9 @@ class PlaylistView(ctk.CTkFrame):
         threading.Thread(target=worker, daemon=True).start()
 
     def _render_playlist(self, info: Optional[Dict[str, Any]]):
+        self.loading_card.stop()
+        self.loading_card.pack_forget()
+
         self.fetch_btn.configure(state="normal", text="Load Playlist")
         if not info:
             logger.error("Failed to load playlist data.")
