@@ -1,8 +1,21 @@
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+*.log
+
+# Environments
 venv/
 .venv/
+env/
+ENV/
+
+# Configuration and user data
+downloads/
+config.json
+history.json
+
+# IDEs
 .vscode/
 .idea/
 .DS_Store
+*.swp
