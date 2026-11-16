@@ -9,7 +9,7 @@ from src.utils.logger import logger
 from src.utils.helpers import format_seconds
 
 class MediaConverter:
-    """High-performance FFmpeg converter for videos and audios."""
+    """High-performance FFmpeg converter for pristine audio and video."""
 
     def __init__(self, ffmpeg_path: Optional[str] = None):
         self.ffmpeg_path = FFmpegChecker.get_ffmpeg_path(ffmpeg_path)
@@ -59,29 +59,16 @@ class MediaConverter:
         audio_codec: str = "mp3",
         audio_bitrate: str = "320k",
         video_codec: str = "libx264",
-        crf: int = 23,
+        crf: int = 20,
         start_time: Optional[str] = None,
         end_time: Optional[str] = None,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
     ) -> bool:
         """
-        Convert media file with real-time progress parsing.
-        
-        Args:
-            input_file: Path to source file
-            output_file: Destination file path
-            output_format: Target format extension (mp4, mkv, mp3, etc.)
-            media_type: 'video' or 'audio'
-            audio_codec: Audio encoder (mp3, aac, libopus, flac, etc.)
-            audio_bitrate: e.g. '192k', '320k'
-            video_codec: Video encoder (libx264, libx265, copy)
-            crf: Compression factor (18=high quality, 28=smaller size)
-            start_time: Optional trim start (HH:MM:SS or seconds)
-            end_time: Optional trim end (HH:MM:SS or seconds)
-            progress_callback: Callback receiving progress dict
+        Convert media with pristine quality and real-time progress parsing.
         """
         if not self.ffmpeg_path:
-            logger.error("FFmpeg not found! Cannot convert.")
+            logger.error("FFmpeg not found. Cannot convert.")
             return False
 
         if not os.path.exists(input_file):
@@ -103,32 +90,35 @@ class MediaConverter:
         if end_time and end_time.strip():
             cmd.extend(["-to", end_time.strip()])
 
-        # Audio extraction or video encoding
+        # High-Fidelity Audio / Video encoding
         if media_type == "audio":
-            cmd.append("-vn")  # No video
+            cmd.append("-vn")
+            clean_btr = audio_bitrate.replace("k", "") + "k" if "k" not in audio_bitrate else audio_bitrate
             if output_format.lower() == "mp3":
-                cmd.extend(["-c:a", "libmp3lame", "-b:a", audio_bitrate])
+                # LAME high quality algorithmic flag -q:a 0 avoids audio distortion
+                cmd.extend(["-c:a", "libmp3lame", "-q:a", "0", "-b:a", clean_btr])
             elif output_format.lower() in ("m4a", "aac"):
-                cmd.extend(["-c:a", "aac", "-b:a", audio_bitrate])
+                cmd.extend(["-c:a", "aac", "-b:a", clean_btr])
             elif output_format.lower() == "flac":
-                cmd.extend(["-c:a", "flac"])
+                cmd.extend(["-c:a", "flac"])  # Lossless
             elif output_format.lower() == "wav":
-                cmd.extend(["-c:a", "pcm_s16le"])
+                cmd.extend(["-c:a", "pcm_s16le"])  # Uncompressed PCM
             elif output_format.lower() == "opus":
-                cmd.extend(["-c:a", "libopus", "-b:a", audio_bitrate])
+                cmd.extend(["-c:a", "libopus", "-b:a", clean_btr])
             elif output_format.lower() == "ogg":
-                cmd.extend(["-c:a", "libvorbis", "-q:a", "6"])
+                cmd.extend(["-c:a", "libvorbis", "-q:a", "7"])
             else:
-                cmd.extend(["-b:a", audio_bitrate])
+                cmd.extend(["-b:a", clean_btr])
         else:
             # Video conversion
             if video_codec == "copy":
                 cmd.extend(["-c:v", "copy"])
             else:
-                cmd.extend(["-c:v", video_codec, "-crf", str(crf), "-preset", "fast"])
+                # CRF 18-22 delivers visually lossless quality without pixelation
+                cmd.extend(["-c:v", video_codec, "-crf", str(crf), "-preset", "medium"])
 
-            # Audio track settings for video
-            cmd.extend(["-c:a", "aac", "-b:a", audio_bitrate])
+            # High-fidelity audio track for video
+            cmd.extend(["-c:a", "aac", "-b:a", "320k"])
 
         cmd.append(output_file)
 
@@ -143,7 +133,6 @@ class MediaConverter:
                 bufsize=1
             )
 
-            # Parse stderr for progress
             time_pattern = re.compile(r"time=(\d+:\d+:\d+\.\d+)")
             speed_pattern = re.compile(r"speed=\s*([\d\.]+)x")
 
@@ -186,4 +175,3 @@ class MediaConverter:
             return False
         finally:
             self.current_process = None
-

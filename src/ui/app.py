@@ -8,18 +8,19 @@ from src.ui.views.playlist_view import PlaylistView
 from src.ui.views.converter_view import ConverterView
 from src.ui.views.subtitles_view import SubtitlesView
 from src.ui.views.history_view import HistoryView
+from src.ui.views.platforms_view import PlatformsView
 from src.ui.views.settings_view import SettingsView
 
 class ModernApp(ctk.CTk):
-    """Main application window with modern responsive sidebar navigation."""
+    """Main application window with modern responsive sidebar navigation and zero emojis."""
 
     def __init__(self):
         super().__init__()
 
         # Window Configuration
-        self.title("YouTube Media Studio & Playlist Downloader Pro")
-        self.geometry("1100x760")
-        self.minsize(920, 640)
+        self.title("Media Studio Pro - Universal Downloader & Converter")
+        self.geometry("1120x780")
+        self.minsize(940, 660)
 
         # Apply user theme
         saved_theme = config.get("theme", "dark")
@@ -39,37 +40,38 @@ class ModernApp(ctk.CTk):
     def _build_sidebar(self):
         self.sidebar_frame = ctk.CTkFrame(self, width=220, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(8, weight=1)
+        self.sidebar_frame.grid_rowconfigure(9, weight=1)
 
-        # Logo / App Title
+        # Brand / App Title
         logo_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
         logo_frame.grid(row=0, column=0, padx=20, pady=(20, 15), sticky="w")
 
         title_lbl = ctk.CTkLabel(
             logo_frame,
-            text="🎬 YT Studio Pro",
-            font=ctk.CTkFont(size=18, weight="bold")
+            text="MEDIA STUDIO PRO",
+            font=ctk.CTkFont(size=16, weight="bold")
         )
         title_lbl.pack(anchor="w")
 
         sub_lbl = ctk.CTkLabel(
             logo_frame,
-            text="High-Speed Media Suite",
+            text="Universal Downloader & Tools",
             font=ctk.CTkFont(size=11),
-            text_color="gray"
+            text_color="#1E88E5"
         )
         sub_lbl.pack(anchor="w")
 
-        # Navigation Buttons
+        # Navigation Buttons (Clean Text, No Emojis)
         self.nav_buttons = {}
 
         nav_items = [
-            ("download", "📥 Downloader", 1),
-            ("playlist", "📋 Playlist Manager", 2),
-            ("converter", "🔄 Converter & Tools", 3),
-            ("subtitles", "🌐 Subtitles & Audio", 4),
-            ("history", "🕒 Library & History", 5),
-            ("settings", "⚙️ Settings", 6),
+            ("download", "Downloader", 1),
+            ("playlist", "Playlist Manager", 2),
+            ("converter", "Converter & Tools", 3),
+            ("subtitles", "Subtitles & Audio", 4),
+            ("platforms", "Supported Platforms", 5),
+            ("history", "Library & History", 6),
+            ("settings", "Settings", 7),
         ]
 
         for key, label, row_idx in nav_items:
@@ -77,7 +79,7 @@ class ModernApp(ctk.CTk):
                 self.sidebar_frame,
                 text=label,
                 height=38,
-                corner_radius=8,
+                corner_radius=6,
                 font=ctk.CTkFont(size=13, weight="bold"),
                 anchor="w",
                 fg_color="transparent",
@@ -85,12 +87,12 @@ class ModernApp(ctk.CTk):
                 hover_color=("gray80", "gray25"),
                 command=lambda k=key: self._select_tab(k)
             )
-            btn.grid(row=row_idx, column=0, padx=15, pady=4, sticky="ew")
+            btn.grid(row=row_idx, column=0, padx=15, pady=3, sticky="ew")
             self.nav_buttons[key] = btn
 
         # Bottom Info Area
         bottom_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
-        bottom_frame.grid(row=9, column=0, padx=15, pady=15, sticky="ew")
+        bottom_frame.grid(row=10, column=0, padx=15, pady=15, sticky="ew")
 
         ctk.CTkLabel(
             bottom_frame,
@@ -109,18 +111,17 @@ class ModernApp(ctk.CTk):
         self.theme_option.pack(fill="x")
 
     def _build_content_area(self):
-        # Views Container
         self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.content_frame.grid(row=0, column=1, sticky="nsew", padx=10, pady=10)
         self.content_frame.grid_rowconfigure(0, weight=1)
         self.content_frame.grid_columnconfigure(0, weight=1)
 
-        # Instantiate View Frames
         self.views = {
-            "download": DownloadView(self.content_frame),
+            "download": DownloadView(self.content_frame, on_navigate_settings=lambda: self._select_tab("settings")),
             "playlist": PlaylistView(self.content_frame),
             "converter": ConverterView(self.content_frame),
             "subtitles": SubtitlesView(self.content_frame),
+            "platforms": PlatformsView(self.content_frame),
             "history": HistoryView(self.content_frame),
             "settings": SettingsView(self.content_frame, on_theme_change=self._sync_theme_dropdown),
         }
@@ -128,14 +129,12 @@ class ModernApp(ctk.CTk):
     def _select_tab(self, key: str):
         self.current_view_name = key
 
-        # Highlight selected button in sidebar
         for name, btn in self.nav_buttons.items():
             if name == key:
-                btn.configure(fg_color=("#3B8ED0", "#1F6AA5"), text_color="white")
+                btn.configure(fg_color=("#1976D2", "#0D47A1"), text_color="white")
             else:
                 btn.configure(fg_color="transparent", text_color=("gray10", "gray90"))
 
-        # Switch visible view
         for name, view in self.views.items():
             if name == key:
                 view.grid(row=0, column=0, sticky="nsew")
@@ -159,4 +158,3 @@ def launch_gui():
 
 if __name__ == "__main__":
     launch_gui()
-

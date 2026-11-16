@@ -9,10 +9,10 @@ from src.core.subtitles import SubtitleManager, POPULAR_LANGUAGES
 from src.ui.components.progress_card import ProgressCard
 from src.utils.config import config
 from src.utils.logger import logger
-from src.utils.helpers import is_valid_url, open_file_or_folder
+from src.utils.helpers import is_valid_url, open_file_or_folder, verify_directory_writable
 
 class SubtitlesView(ctk.CTkFrame):
-    """View for extracting, browsing, and downloading subtitles in 100+ languages."""
+    """View for extracting, browsing, and downloading subtitles in 100+ languages without emojis."""
 
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -24,7 +24,7 @@ class SubtitlesView(ctk.CTkFrame):
 
     def _build_ui(self):
         # 1. URL Bar
-        url_card = ctk.CTkFrame(self, corner_radius=12)
+        url_card = ctk.CTkFrame(self, corner_radius=10)
         url_card.pack(fill="x", padx=10, pady=(10, 6))
 
         ctk.CTkLabel(
@@ -46,7 +46,7 @@ class SubtitlesView(ctk.CTkFrame):
 
         ctk.CTkButton(
             row,
-            text="📋 Paste",
+            text="Paste",
             width=80,
             height=38,
             command=self._paste_clipboard
@@ -54,17 +54,17 @@ class SubtitlesView(ctk.CTkFrame):
 
         self.scan_btn = ctk.CTkButton(
             row,
-            text="🌐 Scan Languages",
-            width=140,
+            text="Scan Languages",
+            width=130,
             height=38,
-            fg_color="#2B7A78",
-            hover_color="#17252A",
+            fg_color="#00695C",
+            hover_color="#004D40",
             command=self._scan_languages
         )
         self.scan_btn.pack(side="left")
 
         # 2. Subtitles Table / List
-        self.list_card = ctk.CTkFrame(self, corner_radius=12)
+        self.list_card = ctk.CTkFrame(self, corner_radius=10)
         self.list_card.pack(fill="both", expand=True, padx=10, pady=6)
 
         header_row = ctk.CTkFrame(self.list_card, fg_color="transparent")
@@ -77,7 +77,7 @@ class SubtitlesView(ctk.CTkFrame):
         )
         self.sub_count_lbl.pack(side="left")
 
-        self.sub_scroll = ctk.CTkScrollableFrame(self.list_card, height=220)
+        self.sub_scroll = ctk.CTkScrollableFrame(self.list_card, height=200)
         self.sub_scroll.pack(fill="both", expand=True, padx=12, pady=(0, 10))
 
         self.empty_msg = ctk.CTkLabel(
@@ -88,7 +88,7 @@ class SubtitlesView(ctk.CTkFrame):
         self.empty_msg.pack(pady=40)
 
         # 3. Download Options Bar
-        opts_card = ctk.CTkFrame(self, corner_radius=12)
+        opts_card = ctk.CTkFrame(self, corner_radius=10)
         opts_card.pack(fill="x", padx=10, pady=(6, 10))
 
         opt_row = ctk.CTkFrame(opts_card, fg_color="transparent")
@@ -116,7 +116,7 @@ class SubtitlesView(ctk.CTkFrame):
 
         self.download_btn = ctk.CTkButton(
             btn_row,
-            text="📥 Download Subtitle (.srt / .vtt)",
+            text="Download Subtitle File (.srt / .vtt)",
             height=38,
             font=ctk.CTkFont(size=13, weight="bold"),
             command=self._start_download_sub
@@ -125,7 +125,7 @@ class SubtitlesView(ctk.CTkFrame):
 
         self.folder_btn = ctk.CTkButton(
             btn_row,
-            text="📂 Open Folder",
+            text="Open Folder",
             height=38,
             width=110,
             command=self._open_folder
@@ -161,7 +161,7 @@ class SubtitlesView(ctk.CTkFrame):
         threading.Thread(target=worker, daemon=True).start()
 
     def _render_subtitles(self, subs: Dict[str, Any]):
-        self.scan_btn.configure(state="normal", text="🌐 Scan Languages")
+        self.scan_btn.configure(state="normal", text="Scan Languages")
         self.available_subs = subs
 
         manual = subs.get("manual", [])
@@ -179,13 +179,12 @@ class SubtitlesView(ctk.CTkFrame):
             ctk.CTkLabel(self.sub_scroll, text="No subtitles found for this media.", text_color="gray").pack(pady=20)
             return
 
-        # Render official subtitles first
         if manual:
             ctk.CTkLabel(
                 self.sub_scroll,
-                text="── Official Subtitle Tracks ──",
+                text="-- Official Subtitle Tracks --",
                 font=ctk.CTkFont(weight="bold"),
-                text_color="#3B8ED0"
+                text_color="#1E88E5"
             ).pack(anchor="w", padx=6, pady=4)
 
             for s in manual:
@@ -193,18 +192,16 @@ class SubtitlesView(ctk.CTkFrame):
                 row.pack(fill="x", padx=4, pady=2)
                 ctk.CTkLabel(row, text=f"[{s['code']}]", width=60, font=ctk.CTkFont(weight="bold")).pack(side="left", padx=4)
                 ctk.CTkLabel(row, text=s['name']).pack(side="left", padx=4)
-                ctk.CTkLabel(row, text="Official", text_color="#4CAF50").pack(side="right", padx=10)
+                ctk.CTkLabel(row, text="Official", text_color="#43A047").pack(side="right", padx=10)
 
-        # Render auto translations
         if auto:
             ctk.CTkLabel(
                 self.sub_scroll,
-                text="── Auto-Generated & Translated Tracks ──",
+                text="-- Auto-Generated & Translated Tracks --",
                 font=ctk.CTkFont(weight="bold"),
-                text_color="#F0AD4E"
+                text_color="#FB8C00"
             ).pack(anchor="w", padx=6, pady=(10, 4))
 
-            # Display first 25 auto tracks with summary
             for s in auto[:30]:
                 row = ctk.CTkFrame(self.sub_scroll, fg_color=("gray90", "gray17"), height=30)
                 row.pack(fill="x", padx=4, pady=2)
@@ -225,13 +222,19 @@ class SubtitlesView(ctk.CTkFrame):
             logger.warning("Please enter a valid video link.")
             return
 
+        out_dir = config.get("download_dir", os.path.abspath("downloads"))
+        ok, err = verify_directory_writable(out_dir)
+        if not ok:
+            logger.error(f"Cannot write to output folder: {err}")
+            self.progress_card.set_status(f"Error: {err}", text_color="#C62828")
+            return
+
         lang_selection = self.lang_combo.get().split(" - ")[0].strip()
         fmt = self.fmt_combo.get()
         include_auto = self.auto_cb_var.get()
-        out_dir = config.get("download_dir", os.path.abspath("downloads"))
 
         self.is_downloading = True
-        self.download_btn.configure(state="disabled", text="⏳ Downloading Subtitles...")
+        self.download_btn.configure(state="disabled", text="Downloading Subtitles...")
         self.progress_card.reset()
         self.progress_card.set_status(f"Fetching subtitle [{lang_selection}]...")
 
@@ -249,14 +252,13 @@ class SubtitlesView(ctk.CTkFrame):
 
     def _on_download_complete(self, success: bool):
         self.is_downloading = False
-        self.download_btn.configure(state="normal", text="📥 Download Subtitle (.srt / .vtt)")
+        self.download_btn.configure(state="normal", text="Download Subtitle File (.srt / .vtt)")
         if success:
-            self.progress_card.update_progress(100.0, status="Subtitles downloaded successfully!")
-            self.progress_card.set_status("Done! Captions saved. 🎉", color="#4CAF50")
+            self.progress_card.update_file_progress(100.0, status="Subtitles downloaded successfully")
+            self.progress_card.set_status("Completed Successfully", text_color="#43A047")
         else:
-            self.progress_card.set_status("Failed to download subtitles", color="#D9534F")
+            self.progress_card.set_status("Failed to download subtitles", text_color="#C62828")
 
     def _open_folder(self):
         folder = config.get("download_dir", os.path.abspath("downloads"))
         open_file_or_folder(folder)
-

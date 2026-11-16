@@ -5,10 +5,10 @@ from datetime import datetime
 from typing import Callable, List, Optional
 
 class AppLogger:
-    """Thread-safe logger with support for GUI callbacks, console, and file output."""
+    """Thread-safe logger with bounded memory and GUI callback support."""
     def __init__(self, log_file: Optional[str] = None):
         self._lock = threading.Lock()
-        self._callbacks: List[Callable[[str, str], None]] = []  # (message, level)
+        self._callbacks: List[Callable[[str, str], None]] = []
         self.log_file = log_file
 
     def add_callback(self, callback: Callable[[str, str], None]) -> None:
@@ -27,13 +27,11 @@ class AppLogger:
         timestamp = datetime.now().strftime("%H:%M:%S")
         formatted = f"[{timestamp}] [{level}] {message}"
 
-        # Console output
         if level in ("ERROR", "WARNING"):
             print(formatted, file=sys.stderr)
         else:
             print(formatted)
 
-        # File output if configured
         if self.log_file:
             try:
                 os.makedirs(os.path.dirname(os.path.abspath(self.log_file)), exist_ok=True)
@@ -42,14 +40,13 @@ class AppLogger:
             except Exception:
                 pass
 
-        # Trigger registered callbacks
         with self._lock:
             callbacks = list(self._callbacks)
         for cb in callbacks:
             try:
                 cb(formatted, level)
-            except Exception as e:
-                print(f"Error in log callback: {e}", file=sys.stderr)
+            except Exception:
+                pass
 
     def info(self, msg: str) -> None:
         self._emit(msg, "INFO")
@@ -66,7 +63,6 @@ class AppLogger:
     def debug(self, msg: str) -> None:
         self._emit(msg, "DEBUG")
 
-    # yt-dlp logger interface compatibility
     def write(self, msg: str) -> None:
         msg = msg.strip()
         if msg:
@@ -82,8 +78,8 @@ class YtDlpLoggerBridge:
         self.logger = logger
 
     def debug(self, msg: str) -> None:
-        # Filter noisy debug messages if desired
-        if not msg.startswith("[debug]"):
+        # Suppress verbose debug chatter to conserve system resources
+        if not msg.startswith("[debug]") and not msg.startswith("[download] Destination:"):
             self.logger.debug(msg)
 
     def info(self, msg: str) -> None:
@@ -95,7 +91,4 @@ class YtDlpLoggerBridge:
     def error(self, msg: str) -> None:
         self.logger.error(msg)
 
-
-# Global logger instance
 logger = AppLogger()
-

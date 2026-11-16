@@ -7,21 +7,23 @@ from src.core.downloader import downloader
 from src.core.converter import MediaConverter
 from src.core.playlist import PlaylistManager
 from src.core.subtitles import SubtitleManager
+from src.core.platform_detector import PlatformDetector
 from src.utils.logger import logger
 from src.utils.config import config
 from src.utils.ffmpeg_checker import FFmpegChecker
 
 def main():
     parser = argparse.ArgumentParser(
-        description="YouTube Studio Pro CLI - High Performance YouTube & Media Tool",
+        description="Media Studio Pro CLI - Download from YouTube, Instagram, TikTok & 25+ Platforms",
         formatter_class=argparse.RawTextHelpFormatter
     )
 
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("-u", "--url", type=str, help="YouTube video or playlist URL to download")
-    group.add_argument("-i", "--info", type=str, help="Inspect playlist or video metadata without downloading")
+    group.add_argument("-u", "--url", type=str, help="Media link from Instagram, TikTok, YouTube, Facebook, Twitter, Reddit, etc.")
+    group.add_argument("-i", "--info", type=str, help="Inspect video or playlist metadata without downloading")
     group.add_argument("--convert", type=str, help="Path of local media file to convert")
     group.add_argument("--check-ffmpeg", action="store_true", help="Check and verify FFmpeg installation")
+    group.add_argument("--platforms", action="store_true", help="List all 25+ supported social media and video platforms")
 
     # Download options
     parser.add_argument("-t", "--type", choices=["video", "audio"], default="video", help="Media download type (default: video)")
@@ -38,9 +40,20 @@ def main():
     # Conversion options
     parser.add_argument("--to-format", type=str, default="mp4", help="Target format for conversion (default: mp4 or mp3)")
     parser.add_argument("--codec", type=str, default="libx264", help="Video codec (libx264, libx265, copy)")
-    parser.add_argument("--crf", type=int, default=23, help="Compression quality CRF (18-28)")
+    parser.add_argument("--crf", type=int, default=20, help="Compression quality CRF (18-28)")
 
     args = parser.parse_args()
+
+    if args.platforms:
+        print("\n==========================================================")
+        print("Supported Platforms (25+ Social & Video Platforms)")
+        print("==========================================================")
+        for idx, p in enumerate(PlatformDetector.get_all_platforms(), start=1):
+            types = ", ".join(p.get("media_types", []))
+            tag = p.get("tag", f"[{p['name']}]")
+            print(f"{idx:2d}. {tag:<18} | {p['description']}")
+            print(f"    Supported: {types}\n")
+        sys.exit(0)
 
     if args.check_ffmpeg:
         ok, msg = FFmpegChecker.check_ffmpeg()
@@ -48,7 +61,9 @@ def main():
         sys.exit(0 if ok else 1)
 
     if args.info:
-        print(f"\n--- Inspecting Media: {args.info} ---")
+        platform = PlatformDetector.detect(args.info)
+        p_name = platform['name'] if platform else "Media"
+        print(f"\n--- Inspecting {p_name}: {args.info} ---")
         info = PlaylistManager.get_playlist_info(args.info)
         if not info:
             print("Failed to retrieve media information.")
@@ -64,9 +79,9 @@ def main():
                 print(f"  ... and {info['count'] - 10} more videos.")
         else:
             v = info.get('videos', [{}])[0]
-            print(f"Video Title : {v.get('title')}")
-            print(f"Channel     : {info.get('uploader')}")
-            print(f"Duration    : {v.get('duration')}")
+            print(f"Title    : {v.get('title')}")
+            print(f"Creator  : {info.get('uploader')}")
+            print(f"Duration : {v.get('duration')}")
         sys.exit(0)
 
     if args.convert:
@@ -93,15 +108,19 @@ def main():
         )
         print()
         if success:
-            print("Conversion completed successfully!")
+            print("Conversion completed successfully.")
             sys.exit(0)
         else:
             print("Conversion failed.")
             sys.exit(1)
 
     if args.url:
+        platform = PlatformDetector.detect(args.url)
+        p_name = platform['name'] if platform else "Universal Platform"
         out_folder = args.output or config.get("download_dir", os.path.abspath("downloads"))
-        print(f"\n--- Starting Download ---")
+
+        print(f"\n--- Starting {p_name} Download ---")
+        print(f"Platform    : {p_name}")
         print(f"URL         : {args.url}")
         print(f"Type        : {args.type.upper()}")
         print(f"Resolution  : {args.resolution}")
@@ -126,10 +145,10 @@ def main():
         )
         print()
         if success:
-            print("\nDownload finished successfully!")
+            print(f"\n{p_name} download finished successfully.")
             sys.exit(0)
         else:
-            print("\nDownload failed or was cancelled.")
+            print(f"\n{p_name} download failed or was cancelled.")
             sys.exit(1)
 
 def _cli_progress(data):
@@ -139,7 +158,10 @@ def _cli_progress(data):
         eta = data.get('eta_str', '--:--')
         downloaded = data.get('downloaded_str', '--')
         total = data.get('total_str', '--')
-        sys.stdout.write(f"\r[{pct:5.1f}%] {downloaded}/{total} | Speed: {speed} | ETA: {eta}  ")
+        pl_idx = data.get('playlist_index', 0)
+        pl_tot = data.get('playlist_total', 0)
+        item_str = f"[{pl_idx}/{pl_tot}] " if pl_tot > 0 else ""
+        sys.stdout.write(f"\r{item_str}[{pct:5.1f}%] {downloaded}/{total} | Speed: {speed} | ETA: {eta}  ")
         sys.stdout.flush()
     elif data.get('status') == 'processing':
         sys.stdout.write(f"\nProcessing / Merging: {data.get('filename')}...\n")
@@ -147,4 +169,3 @@ def _cli_progress(data):
 
 if __name__ == "__main__":
     main()
-

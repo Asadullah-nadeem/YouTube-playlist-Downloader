@@ -1,9 +1,27 @@
 import json
 import os
+import sys
 from typing import Any, Dict
 
+def get_default_download_dir() -> str:
+    """Get the standard system Downloads directory on Windows, Linux, or macOS."""
+    if os.name == "nt" or sys.platform == "win32":
+        user_profile = os.environ.get("USERPROFILE")
+        if user_profile:
+            win_downloads = os.path.join(user_profile, "Downloads")
+            return win_downloads
+
+    home_downloads = os.path.join(os.path.expanduser("~"), "Downloads")
+    if os.path.exists(home_downloads):
+        return home_downloads
+
+    # Fallback to local 'downloads' folder
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(project_root, "downloads")
+
 DEFAULT_CONFIG: Dict[str, Any] = {
-    "download_dir": os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "downloads")),
+    "download_dir": get_default_download_dir(),
+    "first_run_completed": False,
     "max_concurrent_fragments": 8,
     "preferred_resolution": "1080p",
     "preferred_video_format": "mp4",
@@ -22,7 +40,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "keep_video_after_conversion": True
 }
 
-CONFIG_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "config.json")
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "config.json")
 
 class ConfigManager:
     """Manages application settings persisted in a JSON file."""
@@ -73,6 +91,4 @@ class ConfigManager:
         self._config = DEFAULT_CONFIG.copy()
         self.save()
 
-# Global config instance
 config = ConfigManager()
-

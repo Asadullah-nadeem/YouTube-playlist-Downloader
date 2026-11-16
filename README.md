@@ -1,200 +1,179 @@
-# 🎬 YouTube Studio Pro & Playlist Downloader
+# Media Studio Pro - Universal Downloader & Converter
 
-A modern, high-performance Python desktop suite, CLI, and web application for downloading, converting, and managing YouTube videos, playlists, audio tracks, and multilingual subtitles.
+A high-performance desktop suite, command-line interface, and web dashboard for downloading and converting media from **Instagram, TikTok, YouTube, Facebook, Twitter/X, Reddit, and 25+ platforms**.
 
-Built with **CustomTkinter**, **yt-dlp**, and **FFmpeg**, engineered for maximum download speeds, modern UI/UX, and modular architecture.
-
----
-
-## 🌟 Key Features
-
-### 🚀 Ultra-Fast Download Engine
-- **Multi-Fragment Acceleration**: Download multiple video and audio stream chunks simultaneously (4, 8, or 16 parallel fragment connections) for 3x–10x faster speeds.
-- **Full Resolution Support**: Download in **Best**, **4K (2160p)**, **2K (1440p)**, **1080p Full HD**, **720p HD**, **480p**, and **360p** at 60fps / HDR.
-- **Smart JavaScript Challenge Solver**: Uses the system JavaScript runtime (`node` / `bun`) with automated challenge solver distribution to avoid YouTube speed throttling and format limitations.
-- **Embedded Artwork & Metadata**: Embed video thumbnails, chapter markers, artist tags, and album info directly into files.
-
-### 🎨 Modern UI & UX (CustomTkinter)
-- **Dark / Light Mode**: Beautiful dark and light appearance modes with rounded cards and visual status badges.
-- **Live Video Preview**: Instantly inspect video thumbnail, duration badge, title, and channel information before downloading.
-- **Dynamic Progress HUD**: Real-time progress bar with live download speed (MB/s), estimated time remaining (ETA), and transferred size.
-- **Live Activity Console**: Collapsible, color-coded logging console with clear status messages.
-
-### 📋 Advanced Playlist Manager
-- **Playlist Inspection**: View full playlist info, total video count, and channel name before downloading.
-- **Selective Item Checkboxes**: Select or deselect individual videos from an interactive checklist.
-- **Range Filtering**: Download specific slices (e.g. `1-10, 15, 20-25`) without downloading the entire playlist.
-- **Batch Processing**: Progress indicator showing current video index and remaining items.
-
-### 🔄 Media Converter & Audio Tools
-- **Video Conversion**: Convert local videos between **MP4**, **MKV**, **WebM**, **MOV**, and **AVI** with customizable codecs (**H.264**, **H.265 / HEVC**, or fast stream copy).
-- **Audio Extraction**: Extract crystal-clear audio from any video into **MP3** (up to 320 kbps), **M4A / AAC**, **FLAC (lossless)**, **WAV**, or **OPUS**.
-- **Video Compressor**: Reduce video file size using CRF compression presets (Balanced, High Compression, or Smallest File).
-- **Video & Audio Trimmer**: Trim clips precisely by specifying start (`HH:MM:SS`) and end timestamps.
-
-### 🌐 Subtitles & Translations
-- **100+ Languages**: Browse and extract both official human captions and auto-translated closed captions.
-- **Multiple Formats**: Export standalone `.srt` or `.vtt` files, or embed subtitles directly into video containers.
-
-### 🕒 Library & Download History
-- Persistent history of completed downloads.
-- **1-Click Play**: Launch downloaded media in your system's default media player.
-- **1-Click Locate**: Open the containing folder in your file manager with the file selected.
-
-### ⚡ Dual Interface: Desktop GUI, Headless CLI & Web Server
-- **Desktop GUI**: Native CustomTkinter desktop interface (`./run.sh` or `python main.py`).
-- **Command Line (CLI)**: Full CLI interface with flags for terminal and headless server automation (`python cli.py`).
-- **Web Dashboard**: Modern Tailwind CSS + SocketIO web app with live streaming progress (`python server.py`).
+Engineered with **CustomTkinter**, **yt-dlp**, and **FFmpeg** for **instant platform auto-detection on paste**, multi-fragment accelerated downloading, lossless video remuxing, high-bitrate audio extraction (320kbps), and exact playlist batch item counting.
 
 ---
 
-## 📁 Project Architecture
+## Key Capabilities
 
-The codebase is organized cleanly into modular packages:
+### 1. Instant Platform Auto-Detection on Paste
+- Paste or type any link into the URL field. The application instantly detects whether it is an **Instagram Reel**, a **TikTok video**, a **Facebook Reel**, a **Twitter/X clip**, a **Reddit video**, or a **YouTube playlist**.
+- Automatically applies optimal container settings (e.g. MP4 for Reels, MP3 for SoundCloud) without requiring manual adjustments.
+
+### 2. High-Fidelity Audio & Video (No Distortion or Pixelation)
+- **Video Quality**: Merges the highest quality DASH video stream with source audio losslessly via FFmpeg stream copy (`merge_output_format: mp4`), avoiding re-compression artifacts or pixelation.
+- **Audio Quality**: Extracts high-fidelity audio up to **320 kbps MP3** (LAME algorithmic quality preset `-q:a 0`), **M4A / AAC**, or lossless **FLAC / WAV** without volume clipping or crackling.
+- **Resolution Control**: Choose **Best Available**, **4K (2160p)**, **2K (1440p)**, **1080p Full HD**, **720p HD**, **480p**, or **360p**.
+
+### 3. Exact Batch & Playlist Progress Counting
+- When downloading playlists or batch items (even hundreds of videos), the application provides **dual progress tracking**:
+  - **Overall Batch Progress**: Displays exact counters (e.g. `Item 14 of 150 Completed (9.3%)`).
+  - **Active File Progress**: Displays live percentage, download speed (MB/s), countdown ETA, and transferred bytes.
+  - **Library Statistics**: Displays cumulative totals of videos downloaded, audio tracks, and overall storage used.
+
+### 4. Low System Resource Consumption
+- Memory bounded: log console buffer is capped to prevent memory growth during massive playlists.
+- Thread-safe, non-blocking asynchronous workers ensure smooth UI performance without freezing or high CPU usage.
+
+### 5. Standard Windows & Linux Download Destination
+- Defaults to your operating system's standard Downloads directory (`C:\Users\<Username>\Downloads` on Windows, `~/Downloads` on Linux/macOS).
+- **First-Time Setup Prompt**: On first launch, a prominent banner asks you to verify or customize your download folder in Settings.
+- Pre-flight write permission checks ensure no download fails due to missing or locked paths.
+
+---
+
+## Supported Social & Video Platforms (25+)
+
+| Platform | Tag | Supported Formats |
+|---|---|---|
+| **Instagram** | [Instagram] | Reels, Posts, Stories, IGTV (High Quality MP4) |
+| **TikTok** | [TikTok] | Videos without watermark, Original Audio |
+| **YouTube** | [YouTube] | Videos (4K, 2K, 1080p, 720p), Shorts, Playlists, Music |
+| **Facebook** | [Facebook] | Reels, Watch, Public Feed Clips |
+| **Twitter / X** | [Twitter/X] | Video Clips, GIFs, Audio |
+| **Reddit** | [Reddit] | Video Posts (Auto-merged audio + video DASH streams) |
+| **Pinterest** | [Pinterest] | Video Pins, Idea Pins |
+| **Twitch** | [Twitch] | Stream Clips, Broadcast VODs, Highlights |
+| **Threads** | [Threads] | Video Posts |
+| **Vimeo** | [Vimeo] | High-Definition Videos (1080p / 4K) |
+| **SoundCloud** | [SoundCloud] | High-Quality Audio Tracks, Playlists, Albums |
+| **Bandcamp** | [Bandcamp] | Lossless Audio (FLAC/WAV), MP3 Tracks |
+| **Dailymotion** | [Dailymotion] | HD Videos & Shows |
+| **LinkedIn** | [LinkedIn] | Professional Videos & Learning Clips |
+| **Kick** | [Kick] | Live Stream Clips & VODs |
+| **Rumble** | [Rumble] | HD Videos & Audio |
+| **Bilibili** | [Bilibili] | HD Videos, Anime & Multi-part clips |
+| **Bluesky** | [Bluesky] | Video Posts |
+| **Tumblr** | [Tumblr] | Video & Audio Posts |
+| **Loom** | [Loom] | Screen Recordings & Presentations |
+| **Streamable** | [Streamable] | Fast Highlights & Short Clips |
+| **Mixcloud** | [Mixcloud] | DJ Mixes, Radio Shows & Podcasts |
+| **TED Talks** | [TED] | Keynote Talks & Subtitles in 40+ languages |
+| **VKontakte** | [VK] | Videos, Clips & Music |
+| **Likee** | [Likee] | Short Videos & Sounds |
+| **Direct Media**| [Direct Link]| Direct MP4, M3U8, or web video streams |
+
+---
+
+## Clean Project Architecture
+
+The root directory contains only the essential entry points; all logic is cleanly organized in `src/`:
 
 ```
 YouTube-playlist-Downloader/
-├── src/
-│   ├── core/
-│   │   ├── downloader.py       # Core yt-dlp engine (multi-fragment speedup, progress hooks, cancellation)
-│   │   ├── converter.py        # FFmpeg converter (audio extraction, compression, trimming)
-│   │   ├── playlist.py         # Playlist inspector, metadata extraction & range parser
-│   │   └── subtitles.py        # Subtitle scanner, translation downloader & format converter
-│   ├── ui/
-│   │   ├── app.py              # Main CustomTkinter application window & navigation sidebar
-│   │   ├── components/
-│   │   │   ├── progress_card.py # Animated progress card (speed, ETA, size HUD)
-│   │   │   └── video_card.py   # Thumbnail preview card with channel and duration
-│   │   └── views/
-│   │       ├── download_view.py   # Primary quick downloader view
-│   │       ├── playlist_view.py   # Selective playlist manager view
-│   │       ├── converter_view.py  # Media converter, audio extractor & trimmer
-│   │       ├── subtitles_view.py  # Subtitles & translation studio
-│   │       ├── history_view.py    # Downloads history & library manager
-│   │       └── settings_view.py   # Persistent configuration & FFmpeg verification
-│   └── utils/
-│       ├── config.py           # Persistent settings store (config.json)
-│       ├── history.py          # Persistent download history store (history.json)
-│       ├── logger.py           # Thread-safe logging with GUI callbacks
-│       ├── ffmpeg_checker.py   # Auto-detection & validation of FFmpeg / FFprobe
-│       └── helpers.py          # Format helpers (bytes, time, filenames, platform opener)
-├── main.py                     # Primary GUI application entry point
-├── cli.py                      # Complete command-line interface
-├── server.py                   # Web dashboard & REST/SocketIO server
-├── run.sh                      # Quick one-click launcher
-├── setup.sh                    # Automated setup & environment check script
-├── requirements.txt            # Python dependencies
-└── downloads/                  # Output directory (gitignored)
+├── main.py                     # Primary Application Entry Point (Desktop GUI, CLI, Web)
+├── build_exe.py                # Standalone Windows .EXE builder
+├── build_exe.bat               # 1-Click Windows batch script to create .EXE
+├── requirements.txt            # Dependency list
+├── run.sh                      # Linux launcher script
+├── setup.sh                    # Linux automated setup script
+├── README.md                   # Complete documentation
+└── src/                        # Modular package structure
+    ├── core/
+    │   ├── downloader.py       # High-fidelity download engine (no distortion, playlist counters)
+    │   ├── converter.py        # FFmpeg media converter & audio extractor
+    │   ├── playlist.py         # Playlist inspector & item selector
+    │   ├── subtitles.py        # Subtitle scanner & multi-language handler
+    │   └── platform_detector.py# 25+ platform detector (zero emojis)
+    ├── ui/
+    │   ├── app.py              # Main CustomTkinter UI (clean executive styling)
+    │   ├── components/
+    │   │   ├── progress_card.py# Dual progress card (Batch counters + File HUD)
+    │   │   └── video_card.py   # Preview card with thumbnail & stats
+    │   └── views/
+    │       ├── download_view.py# Downloader with First-Time Setup notice & auto-detection
+    │       ├── playlist_view.py# Playlist manager with exact item counters
+    │       ├── converter_view.py# Media converter & audio extractor
+    │       ├── subtitles_view.py# Subtitles & translation studio
+    │       ├── platforms_view.py# Supported platforms catalog
+    │       ├── history_view.py # Downloads library with audio/video summary stats
+    │       └── settings_view.py# Destination folder selector & FFmpeg verification
+    └── utils/
+        ├── config.py           # Persistent settings (Windows Downloads default, first-run flag)
+        ├── history.py          # Persistent download history
+        ├── logger.py           # Thread-safe logging with line buffer limits
+        ├── ffmpeg_checker.py   # FFmpeg & ffprobe verification
+        └── helpers.py          # System paths, bytes/time formatters, cross-platform opener
 ```
 
 ---
 
-## 🛠️ Prerequisites & Installation
+## How to Build Standalone Windows Executable (.EXE)
 
-### Requirements
-- **Python 3.10+** (tested up to Python 3.14)
-- **FFmpeg** (required for audio extraction, video remuxing, and subtitle embedding)
-- **Node.js** (recommended for YouTube JavaScript challenge solving without throttling)
+You can package this entire application into a standalone `.exe` so you can use it every day without opening a terminal or needing Python installed on other machines:
 
-### Automated Setup (Recommended)
-Run the setup script, which automatically prepares the virtual environment, verifies dependencies, and checks FFmpeg:
+### Method A: 1-Click Batch Build (Windows)
+Double-click `build_exe.bat`. It will:
+1. Verify Python and pip.
+2. Install PyInstaller and dependencies.
+3. Automatically bundle CustomTkinter data and themes.
+4. Output `MediaStudioPro.exe` into the `dist/` folder.
 
+### Method B: Manual Command (Windows / Linux)
 ```bash
-./setup.sh
+pip install pyinstaller -r requirements.txt
+python build_exe.py
 ```
 
-### Manual Installation
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Asadullah-nadeem/YouTube-playlist-Downloader.git
-   cd YouTube-playlist-Downloader
-   ```
-
-2. **Create and activate a virtual environment:**
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate    # Linux / macOS
-   # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Verify FFmpeg:**
-   - **Linux (Ubuntu/Debian):** `sudo apt update && sudo apt install ffmpeg`
-   - **macOS:** `brew install ffmpeg`
-   - **Windows:** Download from [gyan.dev/ffmpeg/builds](https://www.gyan.dev/ffmpeg/builds/) and add `bin` to your System `PATH`, or set the custom path in the app Settings.
+### Making the .EXE Completely Portable with FFmpeg:
+To run the `.exe` on any Windows PC without installing FFmpeg separately:
+1. Download the static release of FFmpeg (`ffmpeg.exe` and `ffprobe.exe`) from [gyan.dev/ffmpeg/builds](https://www.gyan.dev/ffmpeg/builds/).
+2. Place `ffmpeg.exe` and `ffprobe.exe` in the same directory as `MediaStudioPro.exe`.
+3. The application will automatically detect the local `ffmpeg.exe`!
 
 ---
 
-## 🚀 How to Run
+## Daily Usage Instructions
 
-### 1. Modern Desktop GUI
+### 1. Daily Desktop GUI
 ```bash
 ./run.sh
 # or
 python3 main.py
 ```
+1. On first launch, check the notification banner at the top or open **Settings** to verify where downloaded files are saved.
+2. Copy a link from Instagram, TikTok, YouTube, Facebook, Twitter/X, or Reddit.
+3. Click **Paste** in the app. The platform will be auto-detected immediately.
+4. Click **Start Download**. Real-time download speed, ETA, and progress will display.
 
-### 2. Command Line Interface (CLI)
-You can use `cli.py` or pass CLI flags directly to `main.py`:
-
+### 2. Command Line (CLI) Usage
 ```bash
-# Verify FFmpeg installation
-python3 cli.py --check-ffmpeg
+# List all 25+ platforms
+python3 main.py --platforms
 
-# Inspect a video or playlist without downloading
-python3 cli.py --info "https://www.youtube.com/playlist?list=PL..."
+# Download an Instagram Reel
+python3 main.py --url "https://www.instagram.com/reel/C8qL..."
 
-# Download a video in 1080p MP4 with 8 parallel connections
-python3 cli.py --url "https://www.youtube.com/watch?v=..." -r 1080p
+# Download a TikTok video
+python3 main.py --url "https://www.tiktok.com/@user/video/..."
 
-# Download audio only as 320kbps MP3
-python3 cli.py --url "https://www.youtube.com/watch?v=..." -t audio -b 320k --aformat mp3
+# Download a YouTube video in 1080p
+python3 main.py --url "https://www.youtube.com/watch?v=..." -r 1080p
 
-# Download specific videos from a playlist (videos 1 through 5, and video 8)
-python3 cli.py --url "https://www.youtube.com/playlist?list=PL..." -p "1-5, 8"
+# Download high-quality 320kbps MP3 audio from any link
+python3 main.py --url "https://soundcloud.com/..." -t audio -b 320k
 
-# Download video with embedded subtitles in English
-python3 cli.py --url "https://www.youtube.com/watch?v=..." --embed-subs --sub-lang en
+# Download a selective range from a playlist (e.g. items 1 to 10, and item 15)
+python3 main.py --url "https://www.youtube.com/playlist?list=..." -p "1-10, 15"
 
-# Convert a local video to MP4 or extract audio to MP3
-python3 cli.py --convert "input.mkv" --to-format mp3 -b 320k
+# Convert a local video or extract audio
+python3 main.py --convert "my_video.mkv" --to-format mp3 -b 320k
 ```
 
 ### 3. Web Dashboard
 ```bash
-./venv/bin/python3 server.py
+python3 main.py --server
 ```
-Then open your browser at `http://127.0.0.1:5000`.
-
----
-
-## ⚙️ Configuration & Customization
-
-Settings can be changed visually through the **Settings** tab in the desktop application or in `config.json`:
-
-| Setting Key | Default | Description |
-|---|---|---|
-| `download_dir` | `./downloads` | Destination folder for completed files |
-| `max_concurrent_fragments` | `8` | Number of simultaneous fragment connections for accelerated downloading |
-| `preferred_resolution` | `1080p` | Default video resolution target |
-| `preferred_video_format` | `mp4` | Preferred video container (`mp4`, `mkv`, `webm`) |
-| `preferred_audio_format` | `mp3` | Preferred audio format (`mp3`, `m4a`, `flac`, `wav`, `opus`) |
-| `preferred_audio_bitrate` | `320k` | Audio bitrate for extraction |
-| `theme` | `dark` | UI appearance mode (`dark`, `light`, `system`) |
-| `custom_ffmpeg_path` | `""` | Optional explicit path to custom FFmpeg binary |
-
----
-
-## ❓ Troubleshooting
-
-- **Speed is slow or videos get throttled:**
-  Make sure Node.js is installed (`node -v`). The downloader automatically uses Node to solve YouTube JavaScript challenges, unlocking unthrottled bandwidth and full 4K/60fps streams.
-- **Audio extraction fails:**
-  Verify FFmpeg is installed by running `./venv/bin/python3 cli.py --check-ffmpeg` or checking the Settings tab.
-- **Tkinter display error on headless Linux:**
-  If you are running in a headless SSH session without a GUI display, use the CLI mode (`python3 cli.py ...`) or run the Web Dashboard (`python3 server.py`).
+Access the responsive web interface at `http://127.0.0.1:5000`.

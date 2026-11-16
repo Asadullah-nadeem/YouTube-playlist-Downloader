@@ -5,18 +5,18 @@ from PIL import Image
 from typing import Optional
 
 class VideoPreviewCard(ctk.CTkFrame):
-    """Card widget that displays a video's thumbnail, title, channel, and duration."""
+    """Card widget that displays a video's thumbnail, title, channel, and duration without emojis."""
 
     def __init__(self, master, **kwargs):
-        super().__init__(master, corner_radius=12, **kwargs)
+        super().__init__(master, corner_radius=10, **kwargs)
 
         self.thumbnail_label = ctk.CTkLabel(
             self,
-            text="No Video Loaded\n(Enter URL and click 'Analyze')",
-            width=180,
-            height=100,
+            text="[No Media Loaded]\nEnter URL and click Analyze",
+            width=170,
+            height=96,
             fg_color=("gray85", "gray20"),
-            corner_radius=8,
+            corner_radius=6,
             font=ctk.CTkFont(size=11)
         )
         self.thumbnail_label.pack(side="left", padx=12, pady=12)
@@ -26,10 +26,10 @@ class VideoPreviewCard(ctk.CTkFrame):
 
         self.title_label = ctk.CTkLabel(
             self.info_frame,
-            text="Video Title will appear here",
+            text="Media Title will appear here",
             font=ctk.CTkFont(size=14, weight="bold"),
             anchor="w",
-            wraplength=420,
+            wraplength=440,
             justify="left"
         )
         self.title_label.pack(anchor="w", pady=(0, 4))
@@ -39,31 +39,30 @@ class VideoPreviewCard(ctk.CTkFrame):
 
         self.channel_label = ctk.CTkLabel(
             self.meta_frame,
-            text="Channel: --",
+            text="Channel / Creator: --",
             font=ctk.CTkFont(size=12),
             text_color="gray",
             anchor="w"
         )
-        self.channel_label.pack(side="left", padx=(0, 15))
+        self.channel_label.pack(side="left", padx=(0, 16))
 
         self.duration_label = ctk.CTkLabel(
             self.meta_frame,
-            text="⏱ --:--",
+            text="Duration: --:--",
             font=ctk.CTkFont(size=12, weight="bold"),
-            text_color="#3B8ED0"
+            text_color="#1E88E5"
         )
         self.duration_label.pack(side="left")
 
     def set_info(self, title: str, channel: str, duration: str, thumbnail_url: Optional[str] = None):
-        """Update the preview card with metadata and fetch thumbnail asynchronously."""
         self.title_label.configure(text=title)
-        self.channel_label.configure(text=f"Channel: {channel}")
-        self.duration_label.configure(text=f"⏱ {duration}")
+        self.channel_label.configure(text=f"Channel / Creator: {channel}")
+        self.duration_label.configure(text=f"Duration: {duration}")
 
         if thumbnail_url:
             self._load_thumbnail(thumbnail_url)
         else:
-            self.thumbnail_label.configure(text="🎬 Media Ready", image=None)
+            self.thumbnail_label.configure(text="[Media Ready]", image=None)
 
     def _load_thumbnail(self, url: str):
         try:
@@ -76,12 +75,10 @@ class VideoPreviewCard(ctk.CTkFrame):
                 return
         except Exception:
             pass
-        self.thumbnail_label.configure(text="🎬 Preview", image=None)
+        self.thumbnail_label.configure(text="[Preview Image]", image=None)
 
     def reset(self):
-        """Reset preview card."""
-        self.title_label.configure(text="Video Title will appear here")
-        self.channel_label.configure(text="Channel: --")
-        self.duration_label.configure(text="⏱ --:--")
-        self.thumbnail_label.configure(text="No Video Loaded\n(Enter URL and click 'Analyze')", image=None)
-
+        self.title_label.configure(text="Media Title will appear here")
+        self.channel_label.configure(text="Channel / Creator: --")
+        self.duration_label.configure(text="Duration: --:--")
+        self.thumbnail_label.configure(text="[No Media Loaded]\nEnter URL and click Analyze", image=None)

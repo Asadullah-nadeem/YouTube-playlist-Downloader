@@ -3,10 +3,10 @@ import os
 from datetime import datetime
 from typing import Any, Dict, List
 
-HISTORY_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "history.json")
+HISTORY_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "history.json")
 
 class HistoryManager:
-    """Tracks downloaded items and maintains persistent history."""
+    """Tracks downloaded items and maintains persistent history with statistics."""
     def __init__(self, filepath: str = HISTORY_FILE):
         self.filepath = filepath
         self._history: List[Dict[str, Any]] = []
@@ -46,15 +46,30 @@ class HistoryManager:
             "size": file_size,
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        # Prepend to keep latest first
         self._history.insert(0, entry)
-        # Cap at 500 items
-        if len(self._history) > 500:
-            self._history = self._history[:500]
+        if len(self._history) > 1000:
+            self._history = self._history[:1000]
         self.save()
 
     def get_all(self) -> List[Dict[str, Any]]:
         return list(self._history)
+
+    def get_stats(self) -> Dict[str, Any]:
+        """Calculate statistics of completed downloads."""
+        total_items = len(self._history)
+        video_count = 0
+        audio_count = 0
+        for item in self._history:
+            t = str(item.get("type", "")).lower()
+            if "audio" in t:
+                audio_count += 1
+            else:
+                video_count += 1
+        return {
+            "total": total_items,
+            "videos": video_count,
+            "audios": audio_count
+        }
 
     def delete(self, entry_id: int) -> bool:
         """Delete an entry by ID."""
@@ -71,4 +86,3 @@ class HistoryManager:
         self.save()
 
 history_manager = HistoryManager()
-

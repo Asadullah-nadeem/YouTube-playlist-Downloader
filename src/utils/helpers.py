@@ -2,7 +2,7 @@ import os
 import re
 import sys
 import subprocess
-from typing import Optional
+from typing import Optional, Tuple
 
 def format_bytes(bytes_count: Optional[float]) -> str:
     """Format bytes into a human-readable string (KB, MB, GB)."""
@@ -41,20 +41,32 @@ def is_valid_url(url: str) -> bool:
     if not url or not isinstance(url, str):
         return False
     regex = re.compile(
-        r'^(?:http|ftp)s?://'  # http:// or https://
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
-        r'localhost|'  # localhost...
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
-        r'(?::\d+)?'  # optional port
+        r'^(?:http|ftp)s?://'
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'
+        r'localhost|'
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
+        r'(?::\d+)?'
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
     return re.match(regex, url.strip()) is not None
 
 def is_playlist_url(url: str) -> bool:
-    """Check if a URL points to a YouTube playlist."""
+    """Check if a URL points to a playlist."""
     if not url:
         return False
     url_lower = url.lower()
     return "list=" in url_lower or "/playlist" in url_lower
+
+def verify_directory_writable(directory_path: str) -> Tuple[bool, str]:
+    """Verify that the target directory exists (or can be created) and has write permissions."""
+    try:
+        os.makedirs(directory_path, exist_ok=True)
+        if not os.path.exists(directory_path):
+            return False, f"Directory does not exist: {directory_path}"
+        if not os.access(directory_path, os.W_OK):
+            return False, f"No write permissions for directory: {directory_path}"
+        return True, "Path valid and writable"
+    except Exception as e:
+        return False, f"Invalid directory path: {e}"
 
 def open_file_or_folder(path: str) -> bool:
     """Open a file or directory in the native file manager or default application."""
@@ -70,4 +82,3 @@ def open_file_or_folder(path: str) -> bool:
         return True
     except Exception:
         return False
-

@@ -9,10 +9,10 @@ from src.core.converter import MediaConverter
 from src.ui.components.progress_card import ProgressCard
 from src.utils.config import config
 from src.utils.logger import logger
-from src.utils.helpers import format_bytes, format_seconds, open_file_or_folder
+from src.utils.helpers import format_bytes, format_seconds, open_file_or_folder, verify_directory_writable
 
 class ConverterView(ctk.CTkScrollableFrame):
-    """View for converting media files, extracting audio, compressing, and trimming."""
+    """View for converting media files, extracting audio, compressing, and trimming without emojis."""
 
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -25,7 +25,7 @@ class ConverterView(ctk.CTkScrollableFrame):
 
     def _build_ui(self):
         # 1. File Selection Section
-        file_card = ctk.CTkFrame(self, corner_radius=12)
+        file_card = ctk.CTkFrame(self, corner_radius=10)
         file_card.pack(fill="x", padx=10, pady=(10, 8))
 
         ctk.CTkLabel(
@@ -47,8 +47,8 @@ class ConverterView(ctk.CTkScrollableFrame):
 
         self.browse_btn = ctk.CTkButton(
             row,
-            text="📂 Browse...",
-            width=100,
+            text="Browse...",
+            width=90,
             height=38,
             command=self._browse_file
         )
@@ -67,7 +67,7 @@ class ConverterView(ctk.CTkScrollableFrame):
         self.file_info_lbl.pack(side="left")
 
         # 2. Conversion Mode & Options
-        options_card = ctk.CTkFrame(self, corner_radius=12)
+        options_card = ctk.CTkFrame(self, corner_radius=10)
         options_card.pack(fill="x", padx=10, pady=8)
 
         ctk.CTkLabel(
@@ -76,7 +76,6 @@ class ConverterView(ctk.CTkScrollableFrame):
             font=ctk.CTkFont(size=13, weight="bold")
         ).pack(anchor="w", padx=15, pady=(12, 6))
 
-        # Operation type selector
         type_row = ctk.CTkFrame(options_card, fg_color="transparent")
         type_row.pack(fill="x", padx=15, pady=4)
 
@@ -89,7 +88,6 @@ class ConverterView(ctk.CTkScrollableFrame):
         self.mode_segmented.set("Convert Video")
         self.mode_segmented.pack(side="left")
 
-        # Dynamic Options Panel
         self.dyn_options_frame = ctk.CTkFrame(options_card, fg_color="transparent")
         self.dyn_options_frame.pack(fill="x", padx=15, pady=10)
 
@@ -114,7 +112,7 @@ class ConverterView(ctk.CTkScrollableFrame):
 
         self.codec_combo = ctk.CTkComboBox(
             fmt_row,
-            values=["libx264 (H.264)", "libx265 (HEVC)", "copy (Fast Remux)"],
+            values=["libx264 (H.264)", "libx265 (HEVC)", "copy (Direct Remux)"],
             width=160
         )
         self.codec_combo.set("libx264 (H.264)")
@@ -123,19 +121,19 @@ class ConverterView(ctk.CTkScrollableFrame):
         self.audio_bitrate_label = ctk.CTkLabel(fmt_row, text="Audio Bitrate:")
         self.audio_bitrate_combo = ctk.CTkComboBox(
             fmt_row,
-            values=["320k", "256k", "192k", "128k"],
-            width=100
+            values=["320k (Maximum Quality)", "256k", "192k", "128k"],
+            width=170
         )
-        self.audio_bitrate_combo.set("320k")
+        self.audio_bitrate_combo.set("320k (Maximum Quality)")
 
         # Trimming Row
         self.trim_frame = ctk.CTkFrame(self.dyn_options_frame, fg_color="transparent")
 
-        ctk.CTkLabel(self.trim_frame, text="Start Time (e.g. 00:01:30):").pack(side="left", padx=(0, 6))
+        ctk.CTkLabel(self.trim_frame, text="Start Time (HH:MM:SS):").pack(side="left", padx=(0, 6))
         self.start_time_entry = ctk.CTkEntry(self.trim_frame, width=100)
         self.start_time_entry.pack(side="left", padx=(0, 20))
 
-        ctk.CTkLabel(self.trim_frame, text="End Time (e.g. 00:03:00):").pack(side="left", padx=(0, 6))
+        ctk.CTkLabel(self.trim_frame, text="End Time (HH:MM:SS):").pack(side="left", padx=(0, 6))
         self.end_time_entry = ctk.CTkEntry(self.trim_frame, width=100)
         self.end_time_entry.pack(side="left")
 
@@ -173,7 +171,7 @@ class ConverterView(ctk.CTkScrollableFrame):
 
         self.convert_btn = ctk.CTkButton(
             actions_row,
-            text="⚡ Start Conversion",
+            text="Start Conversion",
             height=40,
             font=ctk.CTkFont(size=14, weight="bold"),
             command=self._start_conversion
@@ -182,11 +180,11 @@ class ConverterView(ctk.CTkScrollableFrame):
 
         self.cancel_btn = ctk.CTkButton(
             actions_row,
-            text="⏹ Cancel",
+            text="Cancel",
             height=40,
-            width=95,
-            fg_color="#D9534F",
-            hover_color="#C9302C",
+            width=90,
+            fg_color="#C62828",
+            hover_color="#B71C1C",
             state="disabled",
             command=self._cancel_conversion
         )
@@ -194,9 +192,9 @@ class ConverterView(ctk.CTkScrollableFrame):
 
         self.folder_btn = ctk.CTkButton(
             actions_row,
-            text="📂 Open Output",
+            text="Open Folder",
             height=40,
-            width=120,
+            width=110,
             command=self._open_output
         )
         self.folder_btn.pack(side="left")
@@ -218,7 +216,6 @@ class ConverterView(ctk.CTkScrollableFrame):
             self.file_entry.delete(0, tk.END)
             self.file_entry.insert(0, filename)
 
-            # Inspect file
             size_str = format_bytes(os.path.getsize(filename))
             duration_secs = self.converter.get_media_duration(filename)
             dur_str = format_seconds(duration_secs)
@@ -231,7 +228,6 @@ class ConverterView(ctk.CTkScrollableFrame):
             self.out_dir_entry.insert(0, directory)
 
     def _on_mode_changed(self, mode):
-        # Hide all custom rows first
         self.trim_frame.pack_forget()
         self.compress_frame.pack_forget()
         self.audio_bitrate_label.pack_forget()
@@ -245,7 +241,7 @@ class ConverterView(ctk.CTkScrollableFrame):
             self.codec_combo.pack(side="left", padx=(0, 20))
         elif mode == "Extract Audio":
             self.format_label.configure(text="Audio Format:")
-            self.format_combo.configure(values=["mp3", "m4a", "flac", "wav", "opus", "ogg"])
+            self.format_combo.configure(values=["mp3", "m4a", "flac (Lossless)", "wav (Lossless)", "opus", "ogg"])
             self.format_combo.set("mp3")
             self.codec_label.pack_forget()
             self.codec_combo.pack_forget()
@@ -273,10 +269,14 @@ class ConverterView(ctk.CTkScrollableFrame):
             return
 
         out_dir = self.out_dir_entry.get().strip()
-        os.makedirs(out_dir, exist_ok=True)
+        ok, err = verify_directory_writable(out_dir)
+        if not ok:
+            logger.error(f"Cannot write to output folder: {err}")
+            self.progress_card.set_status(f"Error: {err}", text_color="#C62828")
+            return
 
         mode = self.mode_segmented.get()
-        target_ext = self.format_combo.get().lower()
+        target_ext = self.format_combo.get().split()[0].lower()
 
         base_name = os.path.splitext(os.path.basename(input_file))[0]
         suffix = "_converted"
@@ -289,10 +289,9 @@ class ConverterView(ctk.CTkScrollableFrame):
 
         output_file = os.path.join(out_dir, f"{base_name}{suffix}.{target_ext}")
 
-        # Determine settings
         media_type = "audio" if (mode == "Extract Audio" or target_ext in ("mp3", "m4a", "flac", "wav", "opus", "ogg")) else "video"
         codec_raw = self.codec_combo.get().split()[0]
-        audio_bitrate = self.audio_bitrate_combo.get()
+        audio_bitrate = self.audio_bitrate_combo.get().split()[0]
 
         crf = 23
         if mode == "Compress Video":
@@ -306,7 +305,7 @@ class ConverterView(ctk.CTkScrollableFrame):
         end_time = self.end_time_entry.get().strip() if mode == "Trim Clip" else None
 
         self.is_converting = True
-        self.convert_btn.configure(state="disabled", text="⏳ Processing...")
+        self.convert_btn.configure(state="disabled", text="Processing...")
         self.cancel_btn.configure(state="normal")
         self.progress_card.reset()
         self.progress_card.set_status(f"Converting {os.path.basename(input_file)}...")
@@ -332,15 +331,14 @@ class ConverterView(ctk.CTkScrollableFrame):
     def _cancel_conversion(self):
         self.converter.cancel()
         self.cancel_btn.configure(state="disabled")
-        self.progress_card.set_status("Cancelled by user.", color="#D9534F")
+        self.progress_card.set_status("Cancelled by user.", text_color="#C62828")
 
     def _on_progress(self, data: Dict[str, Any]):
         percent = data.get("percent", 0.0)
-        status = data.get("status", "converting")
         speed = data.get("speed")
         cur_t = data.get("current_time")
         tot_t = data.get("total_time")
-        self.progress_card.update_progress(
+        self.progress_card.update_file_progress(
             percent=percent,
             status=f"Converting: {cur_t} / {tot_t}" if cur_t else "Processing...",
             speed=speed
@@ -348,16 +346,15 @@ class ConverterView(ctk.CTkScrollableFrame):
 
     def _on_complete(self, success: bool, output_file: str):
         self.is_converting = False
-        self.convert_btn.configure(state="normal", text="⚡ Start Conversion")
+        self.convert_btn.configure(state="normal", text="Start Conversion")
         self.cancel_btn.configure(state="disabled")
 
         if success:
-            self.progress_card.update_progress(100.0, status="Conversion Done!")
-            self.progress_card.set_status("Completed! File saved. 🎉", color="#4CAF50")
+            self.progress_card.update_file_progress(100.0, status="Conversion Completed Successfully")
+            self.progress_card.set_status("Completed Successfully", text_color="#43A047")
         else:
-            self.progress_card.set_status("Conversion Failed", color="#D9534F")
+            self.progress_card.set_status("Conversion Failed", text_color="#C62828")
 
     def _open_output(self):
         folder = self.out_dir_entry.get().strip() or os.path.abspath("downloads")
         open_file_or_folder(folder)
-
